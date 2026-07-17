@@ -2,13 +2,29 @@ import jieba
 import re
 import os
 
+def detect_encoding(file_path):
+    """Try common encodings"""
+    encodings = ['utf-8', 'gbk', 'gb18030', 'utf-16']
+    for enc in encodings:
+        try:
+            with open(file_path, 'r', encoding=enc) as f:
+                f.read()
+            return enc
+        except:
+            continue
+    return 'gbk'  # fallback
+
 def clean_text(text):
     """Keep only Chinese characters"""
     return re.sub(r'[^\u4e00-\u9fa5]', '', text)
 
 def process_file(input_path, output_path):
     """Process single file: read -> clean -> tokenize -> save"""
-    with open(input_path, 'r', encoding='gbk', errors='ignore') as f:
+    # Auto-detect encoding
+    encoding = detect_encoding(input_path)
+    print(f'  Reading {os.path.basename(input_path)} with {encoding} encoding')
+    
+    with open(input_path, 'r', encoding=encoding, errors='ignore') as f:
         text = f.read()
     
     cleaned = clean_text(text)
@@ -18,13 +34,26 @@ def process_file(input_path, output_path):
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(' '.join(words))
     
-    print(f'✓ {os.path.basename(input_path)}: {len(words)} words')
+    print(f'  ✓ {os.path.basename(input_path)}: {len(words)} words')
     return len(words)
 
 if __name__ == '__main__':
     print('Starting preprocessing...\n')
     
-    process_file('data/raw/shanghai/金锁记.txt', 'data/processed/shanghai/金锁记.txt')
-    process_file('data/raw/america/小团圆.txt', 'data/processed/america/小团圆.txt')
+    # Process all files in shanghai folder
+    for filename in os.listdir('data/raw/shanghai/'):
+        if filename.endswith('.txt'):
+            process_file(
+                f'data/raw/shanghai/{filename}',
+                f'data/processed/shanghai/{filename}'
+            )
+    
+    # Process all files in america folder
+    for filename in os.listdir('data/raw/america/'):
+        if filename.endswith('.txt'):
+            process_file(
+                f'data/raw/america/{filename}',
+                f'data/processed/america/{filename}'
+            )
     
     print('\nPreprocessing completed!')
